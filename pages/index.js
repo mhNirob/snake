@@ -60,10 +60,10 @@ const Cell = ({ x, y, type }) => {
 
 const getRandomCell = () => ({
   x: Math.floor(Math.random() * Config.width),
-  y: Math.floor(Math.random() * Config.width),
+  y: Math.floor(Math.random() * Config.height),
 });
 
-const Snake = () => {
+const useSnake = () => {
   const getDefaultSnake = () => [
     { x: 8, y: 12 },
     { x: 7, y: 12 },
@@ -76,7 +76,7 @@ const Snake = () => {
   const [direction, setDirection] = useState(Direction.Right);
 
   const [food, setFood] = useState({ x: 4, y: 10 });
-  const [score, setScore] = useState(0);
+  const score = snake.length - 3;
 
   // move the snake
   useEffect(() => {
@@ -89,15 +89,17 @@ const Snake = () => {
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax
         const newSnake = [newHead, ...snake];
 
-        // remove tail
-        newSnake.pop();
+        // remove tail only when the cell is not food
+        if (!isFood(newHead)) {
+          newSnake.pop();
+        }
 
         return newSnake;
       });
     };
 
     runSingleStep();
-    const timer = setInterval(runSingleStep, 500);
+    const timer = setInterval(runSingleStep, 100);
 
     return () => clearInterval(timer);
   }, [direction, food]);
@@ -106,10 +108,6 @@ const Snake = () => {
   useEffect(() => {
     const head = snake[0];
     if (isFood(head)) {
-      setScore((score) => {
-        return score + 1;
-      });
-
       let newFood = getRandomCell();
       while (isSnake(newFood)) {
         newFood = getRandomCell();
@@ -120,22 +118,28 @@ const Snake = () => {
   }, [snake]);
 
   useEffect(() => {
+    const handleDirection = (direction, oppositeDirection) => {
+      setDirection((prevDirection) =>
+        prevDirection === oppositeDirection ? oppositeDirection : direction
+      );
+    };
+
     const handleNavigation = (event) => {
       switch (event.key) {
         case "ArrowUp":
-          setDirection(Direction.Top);
+          handleDirection(Direction.Top, Direction.Bottom);
           break;
 
         case "ArrowDown":
-          setDirection(Direction.Bottom);
+          handleDirection(Direction.Bottom, Direction.Top);
           break;
 
         case "ArrowLeft":
-          setDirection(Direction.Left);
+          handleDirection(Direction.Left, Direction.Right);
           break;
 
         case "ArrowRight":
-          setDirection(Direction.Right);
+          handleDirection(Direction.Right, Direction.Left);
           break;
       }
     };
@@ -150,6 +154,25 @@ const Snake = () => {
 
   const isSnake = ({ x, y }) =>
     snake.find((position) => position.x === x && position.y === y);
+
+  const cells = [];
+  for (let x = 0; x < Config.width; x++) {
+    for (let y = 0; y < Config.height; y++) {
+      let type = CellType.Empty;
+      if (isFood({ x, y })) {
+        type = CellType.Food;
+      } else if (isSnake({ x, y })) {
+        type = CellType.Snake;
+      }
+      cells.push(<Cell key={`${x}-${y}`} x={x} y={y} type={type} />);
+    }
+  }
+
+  return { score, isFood, isSnake };
+};
+
+const Snake = () => {
+  const { score, isFood, isSnake } = useSnake();
 
   const cells = [];
   for (let x = 0; x < Config.width; x++) {
