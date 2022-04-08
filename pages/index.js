@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState, useRef } from "react";
+import { useCallback } from "react/cjs/react.development";
 import styles from "../styles/Snake.module.css";
 
 const Config = {
@@ -76,7 +77,27 @@ const useSnake = () => {
   const [direction, setDirection] = useState(Direction.Right);
 
   const [food, setFood] = useState({ x: 4, y: 10 });
-  const score = snake.length - 3;
+  let score = snake.length - 3;
+
+  // reset the game when game ends
+  const resetGame = useCallback(() => {
+    setSnake(getDefaultSnake());
+    setDirection(Direction.Right);
+  }, []);
+
+  // check if snake is out of board or needs to reappear
+
+  const checkAndReappear = (newHead) => {
+    if (newHead.x < 0) {
+      newHead.x = Config.width - 1;
+    } else if (newHead.y < 0) {
+      newHead.y = Config.height - 1;
+    } else if (newHead.x >= Config.width) {
+      newHead.x = 0;
+    } else if (newHead.y >= Config.height) {
+      newHead.y = 0;
+    }
+  };
 
   // move the snake
   useEffect(() => {
@@ -94,6 +115,12 @@ const useSnake = () => {
           newSnake.pop();
         }
 
+        if (isSnake(newHead)) {
+          resetGame();
+        }
+
+        checkAndReappear(newHead);
+
         return newSnake;
       });
     };
@@ -102,7 +129,7 @@ const useSnake = () => {
     const timer = setInterval(runSingleStep, 100);
 
     return () => clearInterval(timer);
-  }, [direction, food]);
+  }, [direction, food, isFood, resetGame, isSnake]);
 
   // update score whenever head touches a food
   useEffect(() => {
@@ -115,7 +142,7 @@ const useSnake = () => {
 
       setFood(newFood);
     }
-  }, [snake]);
+  }, [snake, isFood, isSnake]);
 
   useEffect(() => {
     const handleDirection = (direction, oppositeDirection) => {
