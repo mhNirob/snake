@@ -99,12 +99,24 @@ const useSnake = () => {
     }
   };
 
+  const addFood = useCallback(() => {
+    let newFood = getRandomCell();
+    while (isSnake(newFood)) {
+      newFood = getRandomCell();
+    }
+
+    setFood(newFood);
+  }, [isSnake]);
+
   // move the snake
   useEffect(() => {
     const runSingleStep = () => {
       setSnake((snake) => {
         const head = snake[0];
-        const newHead = { x: head.x + direction.x, y: head.y + direction.y };
+        const newHead = {
+          x: (head.x + direction.x + Config.width) % Config.width,
+          y: (head.y + direction.y + Config.height) % Config.height,
+        };
 
         // make a new snake by extending head
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax
@@ -119,7 +131,7 @@ const useSnake = () => {
           resetGame();
         }
 
-        checkAndReappear(newHead);
+        //checkAndReappear(newHead);
 
         return newSnake;
       });
@@ -128,21 +140,26 @@ const useSnake = () => {
     runSingleStep();
     const timer = setInterval(runSingleStep, 100);
 
-    return () => clearInterval(timer);
-  }, [direction, food, isFood, resetGame, isSnake]);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [direction, food, isFood, resetGame, isSnake, addFood]);
+
+  useEffect(() => {
+    const addFoodTimer = setInterval(addFood, 3000);
+
+    return () => {
+      clearInterval(addFoodTimer);
+    };
+  }, [addFood]);
 
   // update score whenever head touches a food
   useEffect(() => {
     const head = snake[0];
     if (isFood(head)) {
-      let newFood = getRandomCell();
-      while (isSnake(newFood)) {
-        newFood = getRandomCell();
-      }
-
-      setFood(newFood);
+      addFood();
     }
-  }, [snake, isFood, isSnake]);
+  }, [snake, isFood, isSnake, addFood]);
 
   useEffect(() => {
     const handleDirection = (direction, oppositeDirection) => {
