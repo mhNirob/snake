@@ -76,7 +76,7 @@ const useSnake = () => {
   const [snake, setSnake] = useState(getDefaultSnake());
   const [direction, setDirection] = useState(Direction.Right);
 
-  const [food, setFood] = useState({ x: 4, y: 10 });
+  const [foods, setFoods] = useState([{ x: 4, y: 10 }]);
   let score = snake.length - 3;
 
   // reset the game when game ends
@@ -85,32 +85,19 @@ const useSnake = () => {
     setDirection(Direction.Right);
   }, []);
 
-  // check if snake is out of board or needs to reappear
-
-  const checkAndReappear = (newHead) => {
-    if (newHead.x < 0) {
-      newHead.x = Config.width - 1;
-    } else if (newHead.y < 0) {
-      newHead.y = Config.height - 1;
-    } else if (newHead.x >= Config.width) {
-      newHead.x = 0;
-    } else if (newHead.y >= Config.height) {
-      newHead.y = 0;
-    }
-  };
-
   const addFood = useCallback(() => {
     let newFood = getRandomCell();
-    while (isSnake(newFood)) {
+    while (isSnake(newFood) || isFood(newFood)) {
       newFood = getRandomCell();
     }
 
-    setFood(newFood);
+    setFoods([...foods, newFood]);
   }, [isSnake]);
 
   // move the snake
   useEffect(() => {
     const runSingleStep = () => {
+      // check if snake is out of board or needs to reappear
       setSnake((snake) => {
         const head = snake[0];
         const newHead = {
@@ -143,7 +130,7 @@ const useSnake = () => {
     return () => {
       clearInterval(timer);
     };
-  }, [direction, food, isFood, resetGame, isSnake, addFood]);
+  }, [direction, foods, isFood, resetGame, isSnake, addFood]);
 
   useEffect(() => {
     const addFoodTimer = setInterval(addFood, 3000);
@@ -194,7 +181,8 @@ const useSnake = () => {
 
   // ?. is called optional chaining
   // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining
-  const isFood = ({ x, y }) => food?.x === x && food?.y === y;
+  const isFood = ({ x, y }) =>
+    foods.some((food) => food.x === x && food.y === y);
 
   const isSnake = ({ x, y }) =>
     snake.find((position) => position.x === x && position.y === y);
