@@ -70,14 +70,20 @@ const useSnake = () => {
     { x: 7, y: 12 },
     { x: 6, y: 12 },
   ];
-  const grid = useRef();
 
   // snake[0] is head and snake[snake.length - 1] is tail
   const [snake, setSnake] = useState(getDefaultSnake());
   const [direction, setDirection] = useState(Direction.Right);
-
   const [foods, setFoods] = useState([{ x: 4, y: 10 }]);
   let score = snake.length - 3;
+
+    // ?. is called optional chaining
+  // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining
+  const isFood = useCallback(({ x, y }) =>
+    foods.some((food) => food.x === x && food.y === y),[foods]);
+
+  const isSnake = useCallback(({ x, y }) =>
+    snake.find((position) => position.x === x && position.y === y),[snake]);
 
   // reset the game when game ends
   const resetGame = useCallback(() => {
@@ -92,7 +98,7 @@ const useSnake = () => {
     }
 
     setFoods([...foods, newFood]);
-  }, [isSnake]);
+  }, [foods, isFood, isSnake]);
 
   // move the snake
   useEffect(() => {
@@ -125,7 +131,8 @@ const useSnake = () => {
     };
 
     runSingleStep();
-    const timer = setInterval(runSingleStep, 100);
+  
+    const timer = setInterval(runSingleStep, 1000);
 
     return () => {
       clearInterval(timer);
@@ -133,12 +140,19 @@ const useSnake = () => {
   }, [direction, foods, isFood, resetGame, isSnake, addFood]);
 
   useEffect(() => {
-    const addFoodTimer = setInterval(addFood, 3000);
+    const addFoodTimer = setInterval(() => {
+      let newFood = getRandomCell();
+      while (isSnake(newFood) || isFood(newFood)) {
+        newFood = getRandomCell();
+      }
+  
+      setFoods([...foods, newFood]);
+    }, 3000);
 
     return () => {
       clearInterval(addFoodTimer);
     };
-  }, [addFood]);
+  }, [foods, isFood, isSnake]);
 
   // update score whenever head touches a food
   useEffect(() => {
@@ -178,14 +192,6 @@ const useSnake = () => {
 
     return () => window.removeEventListener("keydown", handleNavigation);
   }, []);
-
-  // ?. is called optional chaining
-  // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining
-  const isFood = ({ x, y }) =>
-    foods.some((food) => food.x === x && food.y === y);
-
-  const isSnake = ({ x, y }) =>
-    snake.find((position) => position.x === x && position.y === y);
 
   const cells = [];
   for (let x = 0; x < Config.width; x++) {
